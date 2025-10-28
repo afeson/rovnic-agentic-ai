@@ -103,3 +103,58 @@ class S3Manager:
         except Exception as e:
             logger.error(f"Error listing files: {str(e)}")
             return []
+
+
+if __name__ == "__main__":
+    import sys
+    
+    # Simple test mode
+    print("[S3] Testing AWS S3 integration...")
+    print("[S3] AWS_ACCESS_KEY_ID:", "SET" if os.getenv("AWS_ACCESS_KEY_ID") else "NOT SET")
+    print("[S3] AWS_SECRET_ACCESS_KEY:", "SET" if os.getenv("AWS_SECRET_ACCESS_KEY") else "NOT SET")
+    print("[S3] AWS_S3_BUCKET:", os.getenv("AWS_S3_BUCKET", "rovnic-voice-summaries"))
+    
+    manager = S3Manager()
+    
+    if manager.s3_client is None:
+        print("[S3] ❌ Failed to initialize S3 client")
+        print("[S3] Please verify AWS credentials are set in environment variables")
+        sys.exit(1)
+    
+    print("[S3] ✅ S3 client initialized successfully")
+    
+    # Test list files
+    print("[S3] Listing files in bucket...")
+    try:
+        files = manager.list_files()
+        print(f"[S3] ✅ Found {len(files)} files in bucket")
+        if files:
+            print(f"[S3] Sample files: {files[:5]}")
+    except Exception as e:
+        print(f"[S3] ❌ Error listing files: {str(e)}")
+    
+    # Test upload if test file provided
+    if len(sys.argv) > 1:
+        test_file = sys.argv[1]
+        print(f"[S3] Testing upload with file: {test_file}")
+        
+        # Create a test file if it doesn't exist
+        if not os.path.exists(test_file):
+            print(f"[S3] Creating test file: {test_file}")
+            os.makedirs(os.path.dirname(test_file), exist_ok=True)
+            with open(test_file, 'wb') as f:
+                f.write(b"Test audio data")
+        
+        # Upload test file
+        s3_key = f"test/{os.path.basename(test_file)}"
+        url = manager.upload_file(test_file, s3_key)
+        
+        if url:
+            print(f"[S3] ✅ Upload successful!")
+            print(f"[S3] File URL: {url}")
+        else:
+            print(f"[S3] ❌ Upload failed")
+            sys.exit(1)
+    else:
+        print("[S3] ✅ S3 integration test passed!")
+        print("[S3] To test file upload, run: python src/services/s3_upload.py output/test.mp3")
