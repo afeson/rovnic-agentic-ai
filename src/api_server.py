@@ -146,6 +146,72 @@ async def get_metrics():
     }
 
 
+# Root and simple endpoints
+@app.get("/")
+async def root():
+    """Root endpoint - API status."""
+    logger.info("[ROOT] Root endpoint accessed")
+    return {
+        "status": "ok",
+        "message": "Rovnic Agentic AI API is live!",
+        "version": "1.0.0",
+        "timestamp": datetime.utcnow().isoformat()
+    }
+
+
+@app.get("/predict")
+async def predict():
+    """Simple prediction endpoint."""
+    logger.info("[PREDICT] Simple prediction endpoint called")
+    try:
+        if ml_pipeline is None:
+            return {
+                "prediction": "Win",
+                "confidence": 0.75,
+                "status": "using_default_model"
+            }
+        
+        # Generate prediction using ML pipeline
+        features = [0.5, 1.2]  # Mock features
+        result = ml_pipeline.predict(features)
+        logger.info(f"[PREDICT] Prediction generated: {result}")
+        return result
+    except Exception as e:
+        logger.error(f"[PREDICT] Error: {str(e)}")
+        return {
+            "prediction": "Unable to predict",
+            "confidence": 0.0,
+            "error": str(e)
+        }
+
+
+@app.get("/odds")
+async def odds():
+    """Get live odds data."""
+    logger.info("[ODDS] Live odds endpoint called")
+    try:
+        if odds_client is None:
+            return {
+                "odds": [],
+                "status": "odds_client_unavailable"
+            }
+        
+        # Fetch odds for NBA as default
+        odds_data = odds_client.get_odds("nba")
+        logger.info(f"[ODDS] Fetched odds data")
+        return {
+            "odds": odds_data,
+            "sport": "nba",
+            "timestamp": datetime.utcnow().isoformat()
+        }
+    except Exception as e:
+        logger.error(f"[ODDS] Error: {str(e)}")
+        return {
+            "odds": [],
+            "error": str(e)
+        }
+
+
 # Sport prediction endpoints
 async def predict_sport(sport: str, background_tasks: BackgroundTasks) -> PredictionResponse:
     """Generic sport prediction handler."""
