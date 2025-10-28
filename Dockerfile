@@ -22,21 +22,21 @@ COPY . .
 RUN mkdir -p logs models
 
 # Expose port
-EXPOSE 8000
+EXPOSE 8080
 
 # Environment variables
 ENV PYTHONUNBUFFERED=1 \
-    PORT=8000 \
+    PORT=8080 \
     HOST=0.0.0.0 \
     LOG_LEVEL=INFO \
     ENVIRONMENT=production
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD python -c "import requests; requests.get('http://localhost:8000/health')" || exit 1
+    CMD python -c "import requests; requests.get('http://localhost:8080/health')" || exit 1
 
 # Default command: run API server
-CMD ["python", "-m", "uvicorn", "src.api_server:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["python", "-m", "uvicorn", "src.api_server:app", "--host", "0.0.0.0", "--port", "8080"]
 
 # Alternative command for scheduler (override with: docker run -e COMMAND=scheduler)
 # CMD ["python", "src/main.py"]
