@@ -6,24 +6,18 @@ Exposes endpoints for all 8 supported sports.
 from fastapi import FastAPI, HTTPException, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from typing import Optional, Dict
+from typing import Optional, Dict, List
 from datetime import datetime
 import os
 import logging
 from dotenv import load_dotenv
 
-from utils.logger import setup_logging
-from services.odds_api import OddsAPIClient
-from services.ml_pipeline import MLPipeline
-from services.firestore import FirestoreClient
-from services.s3_upload import S3Manager
-from services.monitor import AccuracyMonitor
-from agents.analyzer_agent import AnalyzerAgent
-from agents.retrain_agent import RetrainAgent
-
 # Setup
 load_dotenv()
-logger = setup_logging("rovnic_api")
+
+# Create logger
+logger = logging.getLogger("rovnic_api")
+logger.setLevel(logging.INFO)
 
 # FastAPI app
 app = FastAPI(
@@ -35,20 +29,67 @@ app = FastAPI(
 # CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://rovnic.com", "http://localhost:3000"],
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Initialize services
-odds_client = OddsAPIClient()
-ml_pipeline = MLPipeline()
-analyzer = AnalyzerAgent()
-s3_manager = S3Manager()
-db = FirestoreClient()
-monitor = AccuracyMonitor()
-retrain_agent = RetrainAgent()
+# Try to initialize services, fail gracefully if dependencies missing
+try:
+    from utils.logger import setup_logging
+    logger = setup_logging("rovnic_api")
+except Exception as e:
+    logger.warning(f"Could not load setup_logging: {e}")
+
+try:
+    from services.odds_api import OddsAPIClient
+    odds_client = OddsAPIClient()
+except Exception as e:
+    logger.warning(f"Could not load OddsAPIClient: {e}")
+    odds_client = None
+
+try:
+    from services.ml_pipeline import MLPipeline
+    ml_pipeline = MLPipeline()
+except Exception as e:
+    logger.warning(f"Could not load MLPipeline: {e}")
+    ml_pipeline = None
+
+try:
+    from services.firestore import FirestoreClient
+    db = FirestoreClient()
+except Exception as e:
+    logger.warning(f"Could not load FirestoreClient: {e}")
+    db = None
+
+try:
+    from services.s3_upload import S3Manager
+    s3_manager = S3Manager()
+except Exception as e:
+    logger.warning(f"Could not load S3Manager: {e}")
+    s3_manager = None
+
+try:
+    from services.monitor import AccuracyMonitor
+    monitor = AccuracyMonitor()
+except Exception as e:
+    logger.warning(f"Could not load AccuracyMonitor: {e}")
+    monitor = None
+
+try:
+    from agents.analyzer_agent import AnalyzerAgent
+    analyzer = AnalyzerAgent()
+except Exception as e:
+    logger.warning(f"Could not load AnalyzerAgent: {e}")
+    analyzer = None
+
+try:
+    from agents.retrain_agent import RetrainAgent
+    retrain_agent = RetrainAgent()
+except Exception as e:
+    logger.warning(f"Could not load RetrainAgent: {e}")
+    retrain_agent = None
 
 # Models
 class PredictionResponse(BaseModel):
